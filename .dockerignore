@@ -1,0 +1,16 @@
+﻿.env
+.env.*
+!.env.example
+
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.git/
+.vscode/
+
+conflicting_liver_report.pdf
+test_native_text.pdf
+test_scanned.pdf
+test_scanned_page.png

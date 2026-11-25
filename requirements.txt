@@ -1,0 +1,11 @@
+
+fastapi
+uvicorn[standard]
+supabase
+python-dotenv
+python-multipart
+google-genai
+pypdf
+pypdfium2
+Pillow
+pytesseract
