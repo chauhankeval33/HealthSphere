@@ -9,3 +9,5 @@ pypdf
 pypdfium2
 Pillow
 pytesseract
+
+email-validator
