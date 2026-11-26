@@ -1,6 +1,6 @@
 
 import logging
-
+from backend.services.document_service import BUCKET_NAME
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -231,28 +231,81 @@ def delete_patient(
     client = context["client"]
 
     try:
-        response = (
+        # 1. Verify that this patient belongs to the logged-in user.
+        patient_response = (
             client.table("healthsphere_patients")
-            .delete()
+            .select("id")
             .eq("id", str(patient_id))
-            .eq("owner_id", user.id)
+            .eq("owner_id", str(user.id))
             .execute()
         )
 
-        if not response.data:
+        if not patient_response.data:
             raise HTTPException(
                 status_code=404,
                 detail="Patient not found",
             )
 
+        # 2. Retrieve only this patient's document Storage paths.
+        documents_response = (
+            client.table("healthsphere_documents")
+            .select("storage_path")
+            .eq("patient_id", str(patient_id))
+            .eq("owner_id", str(user.id))
+            .execute()
+        )
+
+        storage_paths = [
+            item["storage_path"]
+            for item in (documents_response.data or [])
+            if item.get("storage_path")
+            and item["storage_path"].startswith(
+                f"{user.id}/{patient_id}/"
+            )
+        ]
+
+        # 3. Delete the patient.
+        # Related database records are removed by ON DELETE CASCADE.
+        delete_response = (
+            client.table("healthsphere_patients")
+            .delete()
+            .eq("id", str(patient_id))
+            .eq("owner_id", str(user.id))
+            .execute()
+        )
+
+        if not delete_response.data:
+            raise HTTPException(
+                status_code=404,
+                detail="Patient not found or already deleted",
+            )
+
+        # 4. Remove this patient's files from private Storage.
+        storage_cleanup_warning = False
+
+        if storage_paths:
+            try:
+                client.storage.from_(BUCKET_NAME).remove(
+                    storage_paths
+                )
+            except Exception:
+                storage_cleanup_warning = True
+                logger.exception(
+                    "Patient deleted, but Storage cleanup failed | "
+                    "Patient: %s | Owner: %s",
+                    patient_id,
+                    user.id,
+                )
+
         logger.info(
-            "Patient deleted successfully | Patient: %s | Owner: %s",
+            "Patient deletion completed | Patient: %s | Owner: %s",
             patient_id,
             user.id,
         )
 
         return {
             "message": "Patient deleted successfully",
+            "storage_cleanup_warning": storage_cleanup_warning,
         }
 
     except HTTPException:

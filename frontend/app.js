@@ -1,4 +1,4 @@
-﻿
+
 let editingNoteId = null;
 
 /* Patient Workspace — HealthSphere frontend. */
@@ -164,18 +164,92 @@ const tint = p => 't' + (P.indexOf(p) % 4);
 
 /* ---------- Home ---------- */
 
-const card = p => `<a class="card" href="#/patient/${encodeURIComponent(p.id)}">
-  <div class="who">
-    <span class="av ${tint(p)}">${ini(p.name)}</span>
-    <div><b>${esc(p.name)}</b>
-      <div class="mut">${age(p.dob)} yrs · ${esc(p.sex)} · Blood ${esc(p.bg)}</div>
+const card = p => `<article class="card">
+  <a class="card-link" href="#/patient/${encodeURIComponent(p.id)}">
+    <div class="who">
+      <span class="av ${tint(p)}">${ini(p.name)}</span>
+      <div><b>${esc(p.name)}</b>
+        <div class="mut">${age(p.dob)} yrs &middot; ${esc(p.sex)} &middot; Blood ${esc(p.bg)}</div>
+      </div>
     </div>
+    <p class="cond">${esc(p.cond.join(', ') || 'No conditions recorded')}</p>
+    <div class="foot"><span>${p.files.length} files &middot; ${p.notes.length} visits</span>
+      <span>Updated ${esc(p.upd)}</span>
+    </div>
+  </a>
+  <div class="card-actions">
+    <button class="btn danger" data-act="deletepatient" data-id="${esc(p.id)}">
+      Delete patient
+    </button>
   </div>
-  <p class="cond">${esc(p.cond.join(', ') || 'No conditions recorded')}</p>
-  <div class="foot"><span>${p.files.length} files · ${p.notes.length} visits</span>
-    <span>Updated ${esc(p.upd)}</span>
-  </div>
-</a>`;
+</article>`;
+
+function showDeletePatientConfirmation(patientId) {
+  const patient = P.find(item => item.id === patientId);
+
+  if (!patient) {
+    toast('Patient not found');
+    return;
+  }
+
+  open(`
+    <header>
+      <h2>Delete patient?</h2>
+    </header>
+    <div class="body">
+      <p>You are about to permanently delete:</p>
+      <p><strong>${esc(patient.name)}</strong></p>
+      <p>This will also delete their uploaded document records, visit notes,
+      AI analyses, chat history and associated database data.</p>
+      <p><strong>This action cannot be undone.</strong></p>
+    </div>
+    <footer>
+      <button class="btn" data-act="close">Cancel</button>
+      <button class="btn danger" data-act="confirmdeletepatient"
+        data-id="${esc(patient.id)}">Delete permanently</button>
+    </footer>
+  `);
+}
+
+async function deletePatient(patientId, button) {
+  const patient = P.find(item => item.id === patientId);
+
+  if (!patient) {
+    toast('Patient not found');
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Deleting...';
+  }
+
+  try {
+    const result = await apiRequest(
+      `/api/patients/${encodeURIComponent(patientId)}`,
+      { method: 'DELETE' }
+    );
+
+    const index = P.findIndex(item => item.id === patientId);
+    if (index !== -1) P.splice(index, 1);
+
+    close();
+    drawList();
+
+    if (result.storage_cleanup_warning) {
+      toast('Patient deleted, but some stored files need cleanup');
+    } else {
+      toast('Patient deleted successfully');
+    }
+  } catch (error) {
+    if (button) {
+      button.disabled = false;
+      button.textContent = 'Delete permanently';
+    }
+
+    toast(error.message || 'Unable to delete patient');
+  }
+}
 
 function drawList() {
   const q = ($('#q')?.value || '').toLowerCase();
@@ -186,7 +260,10 @@ function drawList() {
 
 function home() {
   $('#app').innerHTML = `<section class="wrap">
-    <h1 class="h1">Patients</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <h1 class="h1">Patients</h1>
+      <button class="btn" data-act="logout">Logout</button>
+    </div>
     <div class="bar">
       <p class="sub">Each patient is a private workspace — their files, visit notes and an assistant that answers only from that record.</p>
       <div class="tools">
@@ -210,7 +287,10 @@ function detail(p) {
   ];
 
   $('#app').innerHTML = `<section class="wrap">
-    <a class="back" href="#/">${ic.back} All patients</a>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px">
+      <a class="back" href="#/">${ic.back} All patients</a>
+      <button class="btn" data-act="logout">Logout</button>
+    </div>
     <div class="phead">
       <span class="av big ${tint(p)}">${ini(p.name)}</span>
       <div class="pinfo">
@@ -241,36 +321,32 @@ const row = s => `<button class="src" data-act="src" data-id="${esc(s.id)}" data
 </button>`;
 
 function pane(p, S) {
-  if (p.tab === 'ask') {
-    return `<div class="ask">
-      <div class="chat">
-        <div class="msgs" id="msgs" aria-live="polite"></div>
-        <div class="inp">
-          <div class="row">
-            <textarea id="ta" rows="1" placeholder="e.g. How has HbA1c changed since the last three visits?" aria-label="Ask a question about this patient"></textarea>
-            <button class="send" data-act="send" aria-label="Send question">${ic.arrow}</button>
-          </div>
-          <p class="fine">Grounded in this patient's record only. Always verify against source documents before clinical decisions.</p>
+if (p.tab === 'ask') {
+  return `<div class="ask">
+    <div class="chat">
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <div class="inp">
+        <div class="row">
+          <textarea id="ta" rows="1" placeholder="e.g. How has HbA1c changed since the last three visits?" aria-label="Ask a question about this patient"></textarea>
+          <button class="send" data-act="send" aria-label="Send question">${ic.arrow}</button>
+        </div>
+        <p class="fine">Grounded in this patient's record only. Always verify against source documents before clinical decisions.</p>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="box" style="margin:0">
+        <h3 class="lbl">Knowledge <small>${p.files.length} files · ${p.notes.length} notes</small></h3>
+        <div class="klist">${S.map(row).join('') || '<p class="mut">No files or notes yet. Add a visit note or upload a report to get started.</p>'}</div>
+        <div class="pair">
+          <button class="btn" data-act="upload">Add files</button>
+          <button class="btn" data-act="addnote">Add note</button>
         </div>
       </div>
-      <aside class="side">
-        <div class="box">
-          <h3 class="lbl">Snapshot</h3>
-          <div class="sec al" style="margin-top:0">Allergies</div>
-          <div class="tags">${p.allergies.length ? p.allergies.map(a => `<span class="tag al">${esc(a)}</span>`).join('') : '<span class="mut">None known</span>'}</div>
-          <div class="sec">Conditions</div>
-          <div class="tags">${p.cond.map(c => `<span class="tag">${esc(c)}</span>`).join('') || '<span class="mut">None recorded</span>'}</div>
-          <div class="sec">Current medications</div>
-          <ul class="meds">${p.meds.map(m => `<li>${esc(m)}</li>`).join('') || '<li class="mut">None recorded</li>'}</ul>
-        </div>
-        <div class="box" style="margin:0">
-          <h3 class="lbl">Knowledge <small>${p.files.length} files · ${p.notes.length} notes</small></h3>
-          <div class="klist">${S.map(row).join('') || '<p class="mut">No files or notes yet. Add a visit note or upload a report to get started.</p>'}</div>
-          <div class="pair"><button class="btn" data-act="upload">Add files</button><button class="btn" data-act="addnote">Add note</button></div>
-        </div>
-      </aside>
-    </div>`;
-  }
+    </aside>
+  </div>`;
+}
+
 
   if (p.tab === 'visits') {
     return `<div class="tl">${p.notes.map(n => `<details>
@@ -377,74 +453,95 @@ function findCitationSource(sources, sourceIndex, chunkIndex) {
  * All other answer text is HTML-escaped before it is displayed.
  */
 
+
+/* Render Markdown safely and convert recognized citations into inline buttons. */
+
 function renderChatAnswer(answer, sources) {
-  const text = String(answer || '');
+  const text = String(answer || "");
   const citationPattern = /\[Source\s+(\d+)\s*,\s*chunk\s+(\d+)\]/gi;
-  let output = '';
-  let lastIndex = 0;
-  let match;
+  const citations = [];
 
-  while ((match = citationPattern.exec(text)) !== null) {
-    output += esc(text.slice(lastIndex, match.index));
-
-    const sourceIndex = Number(match[1]);
-    const chunkIndex = Number(match[2]);
+  // Replace citations temporarily so Markdown cannot interpret them as links.
+  const markdown = text.replace(citationPattern, (original, source, chunk) => {
+    const sourceIndex = Number(source);
+    const chunkIndex = Number(chunk);
     const found = findCitationSource(sources, sourceIndex, chunkIndex);
+    const token = `HEALTHSPHERECITATIONTOKEN${citations.length}END`;
 
-    if (found) {
-      output += `<button class="inline-citation" data-act="chunkcite"
-        data-source="${sourceIndex}" data-chunk="${chunkIndex}"
-        title="View source ${sourceIndex}, chunk ${chunkIndex}">
-        [Source ${sourceIndex}, chunk ${chunkIndex}]
-      </button>`;
-    } else {
-      output += `<span class="citation-unavailable">[Source ${sourceIndex}, chunk ${chunkIndex}]</span>`;
-    }
+    citations.push({
+      token,
+      sourceIndex,
+      chunkIndex,
+      available: Boolean(found)
+    });
 
-    lastIndex = citationPattern.lastIndex;
+    return token;
+  });
+
+  let html;
+
+  if (window.marked && window.DOMPurify) {
+    html = window.marked.parse(markdown, {
+      gfm: true,
+      breaks: false
+    });
+
+    // Never insert unsanitized model-generated HTML.
+    html = window.DOMPurify.sanitize(html, {
+      USE_PROFILES: { html: true }
+    });
+  } else {
+    html = `<p>${esc(markdown)}</p>`;
   }
 
-  output += esc(text.slice(lastIndex));
+  // Restore citations as small, clickable references.
+  citations.forEach(citation => {
+    const button = citation.available
+      ? `<button type="button" class="inline-citation"
+          data-act="chunkcite"
+          data-source="${citation.sourceIndex}"
+          data-chunk="${citation.chunkIndex}"
+          title="View cited source">
+          [${citation.sourceIndex}]
+        </button>`
+      : `<span class="citation-unavailable">[${citation.sourceIndex}]</span>`;
 
-  return `<div class="answer-text">${output}</div>`;
+    html = html.replace(citation.token, button);
+  });
+
+  return `<div class="answer-text">${html}</div>`;
 }
 
-/* Render source cards below an assistant answer. */
+
+/* Render a clean source list below the assistant answer. */
 
 function renderChatSources(sources) {
   const uniqueSources = normalizeChatSources(sources);
-  if (!uniqueSources.length) return '';
+  if (!uniqueSources.length) return "";
 
-  return `<div class="cites">
-    <div class="citation-heading">Sources used</div>
-    ${uniqueSources.map(source => {
-      const similarity = Number(source.similarity);
-      const similarityText = Number.isFinite(similarity)
-        ? `${(similarity * 100).toFixed(1)}% match` : '';
-
-      const chunkButtons = source.chunks.map(chunk =>
-        `<button class="cite-chunk" data-act="chunkcite"
-          data-source="${source.source_index}"
-          data-chunk="${chunk.chunk_index}">
-          Chunk ${chunk.chunk_index}
-        </button>`
-      ).join('');
-
-      return `<div class="cite-card">
-        <div class="cite-card-head">
-          <span class="cite-number">Source ${source.source_index}</span>
-          <span class="cite-filename">${esc(source.file_name)}</span>
-        </div>
-        ${similarityText ? `<div class="cite-similarity">${similarityText}</div>` : ''}
-        <div class="cite-chunks">
-          ${chunkButtons || '<span class="mut">Chunk details unavailable</span>'}
-        </div>
-        ${source.document_id ? `<button class="cite-open" data-act="cite"
-          data-id="${esc(source.document_id)}"
-          data-name="${esc(source.file_name)}">Open original document</button>` : ''}
-      </div>`;
-    }).join('')}
-  </div>`;
+  return `
+    <section class="cites" aria-label="Answer sources">
+      <div class="citation-heading">Sources</div>
+      <div class="cite-list">
+        ${uniqueSources.map(source => `
+          <article class="cite-card">
+            <div class="cite-card-main">
+              <span class="cite-number">${source.source_index}</span>
+              <span class="cite-filename">${esc(source.file_name)}</span>
+            </div>
+            ${source.document_id ? `
+              <button type="button" class="cite-open"
+                data-act="cite"
+                data-id="${esc(source.document_id)}"
+                data-name="${esc(source.file_name)}">
+                View source
+              </button>
+            ` : ""}
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
 }
 
 /* Show the exact retrieved chunk in a citation detail modal. */
@@ -504,6 +601,13 @@ function drawChat(p) {
       ${renderChatSources(message.sources)}
     </div>`;
   }).join('');
+
+  // Render LaTeX and medical formulas after inserting the answer.
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    window.MathJax.typesetPromise([m]).catch(error => {
+      console.warn("MathJax rendering issue:", error);
+    });
+  }
 
   m.scrollTop = m.scrollHeight;
 }
@@ -1085,9 +1189,12 @@ document.addEventListener('click', e => {
 
   ({
     close,
+    logout,
     new: newPatient,
     addnote: () => addNote(p),
     upload,
+    deletepatient: () => showDeletePatientConfirmation(b.dataset.id),
+    confirmdeletepatient: () => deletePatient(b.dataset.id, b),
     editpatient: () => { if (p) editPatient(p); },
 
     tab: () => {
