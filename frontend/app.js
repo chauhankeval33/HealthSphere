@@ -1,7 +1,7 @@
 ﻿
 let editingNoteId = null;
 
-/* Patient Workspace â€” HealthSphere frontend. */
+/* Patient Workspace — HealthSphere frontend. */
 
 const $ = (s, r = document) => r.querySelector(s);
 
@@ -12,7 +12,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({
 const NOW = new Date('2026-11-23T00:00:00Z');
 
 const age = d => {
-  if (!d) return 'â€”';
+  if (!d) return '—';
   const b = new Date(d);
   let a = NOW.getUTCFullYear() - b.getUTCFullYear();
   if (NOW < Date.UTC(NOW.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate())) a--;
@@ -99,7 +99,7 @@ function mapBackendDocument(doc) {
   let documentType = 'Document';
   if (mimeType === 'application/pdf') documentType = 'Lab report';
   else if (mimeType.startsWith('image/')) documentType = 'Image';
-  let fileSize = 'â€”';
+  let fileSize = '—';
   if (sizeBytes > 0) {
     fileSize = sizeBytes >= 1048576
       ? (sizeBytes / 1048576).toFixed(1) + ' MB'
@@ -168,11 +168,11 @@ const card = p => `<a class="card" href="#/patient/${encodeURIComponent(p.id)}">
   <div class="who">
     <span class="av ${tint(p)}">${ini(p.name)}</span>
     <div><b>${esc(p.name)}</b>
-      <div class="mut">${age(p.dob)} yrs Â· ${esc(p.sex)} Â· Blood ${esc(p.bg)}</div>
+      <div class="mut">${age(p.dob)} yrs · ${esc(p.sex)} · Blood ${esc(p.bg)}</div>
     </div>
   </div>
   <p class="cond">${esc(p.cond.join(', ') || 'No conditions recorded')}</p>
-  <div class="foot"><span>${p.files.length} files Â· ${p.notes.length} visits</span>
+  <div class="foot"><span>${p.files.length} files · ${p.notes.length} visits</span>
     <span>Updated ${esc(p.upd)}</span>
   </div>
 </a>`;
@@ -188,7 +188,7 @@ function home() {
   $('#app').innerHTML = `<section class="wrap">
     <h1 class="h1">Patients</h1>
     <div class="bar">
-      <p class="sub">Each patient is a private workspace â€” their files, visit notes and an assistant that answers only from that record.</p>
+      <p class="sub">Each patient is a private workspace — their files, visit notes and an assistant that answers only from that record.</p>
       <div class="tools">
         <label class="search">${ic.search}<input id="q" type="search" placeholder="Search name, condition, phone" aria-label="Search patients"></label>
         <button class="btn pri" data-act="new">${ic.plus} New patient</button>
@@ -215,7 +215,7 @@ function detail(p) {
       <span class="av big ${tint(p)}">${ini(p.name)}</span>
       <div class="pinfo">
         <h1 class="nm">${esc(p.name)}</h1>
-        <p class="mut" style="margin:4px 0 0">${age(p.dob)} yrs Â· ${esc(p.sex)} Â· Blood ${esc(p.bg)} Â· Patient since ${fd(p.since)}</p>
+        <p class="mut" style="margin:4px 0 0">${age(p.dob)} yrs · ${esc(p.sex)} · Blood ${esc(p.bg)} · Patient since ${fd(p.since)}</p>
       </div>
       <div class="acts">
         <button class="btn" data-act="upload">${ic.up} Upload files</button>
@@ -237,7 +237,7 @@ function detail(p) {
 
 const row = s => `<button class="src" data-act="src" data-id="${esc(s.id)}" data-k="${esc(s.kind)}">
   <span class="bdg">${esc(s.kind)}</span>
-  <span class="sbody"><b>${esc(s.name)}</b><span>${esc(s.sub)} Â· ${fd(s.date)}</span></span>
+  <span class="sbody"><b>${esc(s.name)}</b><span>${esc(s.sub)} · ${fd(s.date)}</span></span>
 </button>`;
 
 function pane(p, S) {
@@ -264,7 +264,7 @@ function pane(p, S) {
           <ul class="meds">${p.meds.map(m => `<li>${esc(m)}</li>`).join('') || '<li class="mut">None recorded</li>'}</ul>
         </div>
         <div class="box" style="margin:0">
-          <h3 class="lbl">Knowledge <small>${p.files.length} files Â· ${p.notes.length} notes</small></h3>
+          <h3 class="lbl">Knowledge <small>${p.files.length} files · ${p.notes.length} notes</small></h3>
           <div class="klist">${S.map(row).join('') || '<p class="mut">No files or notes yet. Add a visit note or upload a report to get started.</p>'}</div>
           <div class="pair"><button class="btn" data-act="upload">Add files</button><button class="btn" data-act="addnote">Add note</button></div>
         </div>
@@ -274,7 +274,7 @@ function pane(p, S) {
 
   if (p.tab === 'visits') {
     return `<div class="tl">${p.notes.map(n => `<details>
-      <summary>${esc(n.title)}<small>${fd(n.date)}${n.doctor ? ' Â· ' + esc(n.doctor) : ''}</small></summary>
+      <summary>${esc(n.title)}<small>${fd(n.date)}${n.doctor ? ' · ' + esc(n.doctor) : ''}</small></summary>
       <p>${esc(n.body)}</p>
       <div class="pair" style="margin:12px 0">
         <button class="btn" data-act="editnote" data-id="${esc(n.id)}">Edit</button>
@@ -288,7 +288,7 @@ function pane(p, S) {
       ${p.files.map(f => `<div class="frow">
         <span class="bdg">${esc(f.ext)}</span>
         <b style="font-weight:500;overflow-wrap:anywhere">${esc(f.name)}</b>
-        <span class="meta">${esc(f.type)} Â· ${fd(f.date)}</span>
+        <span class="meta">${esc(f.type)} · ${fd(f.date)}</span>
         <span class="meta">${esc(f.size)}</span>
         <button class="btn" data-act="analyze" data-id="${esc(f.id)}">Analyze</button>
         <button class="btn" data-act="history" data-id="${esc(f.id)}">History</button>
@@ -298,7 +298,7 @@ function pane(p, S) {
     </div>`;
   }
 
-  const kv = o => `<dl class="kv">${o.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v || 'â€”')}</dd>`).join('')}</dl>`;
+  const kv = o => `<dl class="kv">${o.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v || '—')}</dd>`).join('')}</dl>`;
   return `<div class="pg">
     <div class="box"><h3 class="lbl">Identity</h3>${kv([['Name', p.name], ['Born', fd(p.dob)], ['Sex', p.sex], ['Blood group', p.bg]])}</div>
     <div class="box"><h3 class="lbl">Contact</h3>${kv([['Phone', p.phone], ['Email', p.email], ['Address', p.address]])}</div>
@@ -311,7 +311,7 @@ function pane(p, S) {
 /* ---------- RAG Chatbot and citations ---------- */
 
 const CHIPS = [
-  'Summarise this patientâ€™s history',
+  'Summarise this patient’s history',
   'What medications are they on?',
   'Any known allergies?',
   'What happened at the last visit?',
@@ -480,7 +480,7 @@ function drawChat(p) {
 
   if (!p.chat.length) {
     m.innerHTML = `<div class="hero">
-      <h2>Ask about ${esc(p.name.split(' ')[0])}â€™s health</h2>
+      <h2>Ask about ${esc(p.name.split(' ')[0])}’s health</h2>
       <p>Answers are generated using this patient's indexed records, uploaded documents and available clinical notes, with source references you can check.</p>
       <div class="chips">
         ${CHIPS.map(c => `<button class="chip" data-act="chip" data-q="${esc(c)}">${esc(c)}</button>`).join('')}
@@ -651,15 +651,15 @@ function newPatient() {
       <div class="f c3">
         ${fld('dob', 'Date of birth', '', 'date')}
         <label>Sex<select id="sx"><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select></label>
-        <label>Blood group<select id="bg"><option>Unknown</option>${['A+', 'Aâˆ’', 'B+', 'Bâˆ’', 'AB+', 'ABâˆ’', 'O+', 'Oâˆ’'].map(b => `<option>${b}</option>`).join('')}</select></label>
+        <label>Blood group<select id="bg"><option>Unknown</option>${['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'].map(b => `<option>${b}</option>`).join('')}</select></label>
       </div>
       <div class="gh">Contact</div>
       <div class="f c2">${fld('ph', 'Phone', '+91', 'tel')}${fld('em', 'Email', '', 'email')}</div>
       <div class="f">${fld('ad', 'Address')}</div>
       <div class="f c2">${fld('en', 'Emergency contact name', 'Name (relation)')}${fld('ep', 'Emergency contact phone', '', 'tel')}</div>
       <div class="gh">Medical baseline</div>
-      <div class="f c2">${fld('al', 'Allergies', 'Comma separated, or â€œNone knownâ€')}${fld('co', 'Chronic conditions', 'Comma separated')}</div>
-      <div class="f"><label>Current medications<textarea id="me" rows="3" placeholder="One per line â€” name, dose, frequency"></textarea></label></div>
+      <div class="f c2">${fld('al', 'Allergies', 'Comma separated, or “None known”')}${fld('co', 'Chronic conditions', 'Comma separated')}</div>
+      <div class="f"><label>Current medications<textarea id="me" rows="3" placeholder="One per line — name, dose, frequency"></textarea></label></div>
       <div class="f c2">${fld('dc', 'Primary physician')}<label>Initial documents (optional)<input id="fl" type="file" multiple></label></div>
       <p class="note">Only upload documents you have consent to store.</p>
     </div>${foot(['create', 'Create patient'])}`);
@@ -713,7 +713,7 @@ async function preview(p, id, k) {
   }
 
   open(`<header><h2 style="font-size:22px;overflow-wrap:anywhere">${esc(s.name)}</h2>
-    <p class="mut">${esc(s.sub || s.type || 'Document')} Â· ${fd(s.date)}</p></header>
+    <p class="mut">${esc(s.sub || s.type || 'Document')} · ${fd(s.date)}</p></header>
     <div class="body" id="previewContent"><p class="mut">Generating secure preview link...</p></div>
     ${foot(['close', 'Close'])}`, 'dr');
 
@@ -753,7 +753,7 @@ async function preview(p, id, k) {
 
 function analysisModalHeader(fileName, subtitle = '') {
   return `<header><h2 style="font-size:22px;overflow-wrap:anywhere">AI document analysis</h2>
-    <p class="mut">${esc(fileName)}${subtitle ? ' Â· ' + esc(subtitle) : ''}</p></header>`;
+    <p class="mut">${esc(fileName)}${subtitle ? ' · ' + esc(subtitle) : ''}</p></header>`;
 }
 
 function renderAnalysisResult(result, fileName) {
@@ -837,7 +837,7 @@ async function loadDocumentAnalysisHistory(p, documentId) {
       return;
     }
 
-    content.innerHTML = `<p class="mut" style="margin-bottom:16px">${analyses.length} saved analysis${analyses.length === 1 ? '' : 'es'} Â· Newest first</p>
+    content.innerHTML = `<p class="mut" style="margin-bottom:16px">${analyses.length} saved analysis${analyses.length === 1 ? '' : 'es'} · Newest first</p>
       ${analyses.map((item, index) => `<div class="box" style="margin:0 0 14px">
         <h3 class="lbl">Analysis ${analyses.length - index}</h3>
         <p class="meta" style="margin-bottom:12px">${esc(formatAnalysisDate(item.created_at))}</p>
@@ -879,7 +879,7 @@ function showAuth(mode = 'login') {
     <form id="authForm"><div class="body">
       <div class="f"><label>Email address<input id="authEmail" type="email" placeholder="you@example.com" required></label></div>
       <div class="f"><label>Password<input id="authPassword" type="password" placeholder="Enter your password" minlength="8" required></label></div>
-      <p class="err" id="authError"></p><p class="note">Demo project â€” use fictional patient data only.</p>
+      <p class="err" id="authError"></p><p class="note">Demo project — use fictional patient data only.</p>
     </div>
     <footer><button class="btn" type="button" id="authToggle">${signup ? 'Back to login' : 'Create account'}</button>
     <button class="btn pri" type="submit" id="authSubmit">${signup ? 'Sign up' : 'Login'}</button></footer></form>`);
@@ -1103,7 +1103,7 @@ document.addEventListener('click', e => {
     create: async () => {
       const n = $('#nm').value.trim();
       if (!n) {
-        $('#nme').textContent = 'Enter the patientâ€™s full name.';
+        $('#nme').textContent = 'Enter the patient’s full name.';
         $('#nm').focus();
         return;
       }
