@@ -298,8 +298,11 @@ function pane(p, S) {
     </div>`;
   }
 
-  const kv = o => `<dl class="kv">${o.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v || '—')}</dd>`).join('')}</dl>`;
-  return `<div class="pg">
+  const kv = o => `<dl class="kv">${o.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v || '\u2014')}</dd>`).join('')}</dl>`;
+  return `<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button class="btn pri" data-act="editpatient">Edit patient</button>
+  </div>
+  <div class="pg">
     <div class="box"><h3 class="lbl">Identity</h3>${kv([['Name', p.name], ['Born', fd(p.dob)], ['Sex', p.sex], ['Blood group', p.bg]])}</div>
     <div class="box"><h3 class="lbl">Contact</h3>${kv([['Phone', p.phone], ['Email', p.email], ['Address', p.address]])}</div>
     <div class="box"><h3 class="lbl">Emergency contact</h3>${kv([['Name', p.emerg], ['Phone', p.ephone]])}</div>
@@ -663,6 +666,50 @@ function newPatient() {
       <div class="f c2">${fld('dc', 'Primary physician')}<label>Initial documents (optional)<input id="fl" type="file" multiple></label></div>
       <p class="note">Only upload documents you have consent to store.</p>
     </div>${foot(['create', 'Create patient'])}`);
+}
+
+
+function editPatient(p) {
+  open(`<header><h2>Edit patient</h2>
+    <p class="mut">Update this patient's personal and medical information.</p></header>
+    <div class="body">
+      <div class="gh">Identity</div>
+      <div class="f"><label>Full name *<input id="pnm" required><span class="err" id="pnme"></span></label></div>
+      <div class="f c3">
+        ${fld('pdob', 'Date of birth', '', 'date')}
+        <label>Sex<select id="psx"><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select></label>
+        <label>Blood group<select id="pbg"><option value="Unknown">Unknown</option>${['A+', 'A\u2212', 'B+', 'B\u2212', 'AB+', 'AB\u2212', 'O+', 'O\u2212'].map(b => `<option>${b}</option>`).join('')}</select></label>
+      </div>
+      <div class="gh">Contact</div>
+      <div class="f c2">${fld('pph', 'Phone', '+91', 'tel')}${fld('pem', 'Email', '', 'email')}</div>
+      <div class="f">${fld('pad', 'Address')}</div>
+      <div class="f c2">${fld('pen', 'Emergency contact name', 'Name (relation)')}${fld('pep', 'Emergency contact phone', '', 'tel')}</div>
+      <div class="gh">Medical baseline</div>
+      <div class="f c2">${fld('pal', 'Allergies', 'Comma separated')}${fld('pco', 'Chronic conditions', 'Comma separated')}</div>
+      <div class="f"><label>Current medications<textarea id="pme" rows="3" placeholder="One medication per line"></textarea></label></div>
+      <div class="f">${fld('pdc', 'Primary physician')}</div>
+    </div>${foot(['updatepatient', 'Save changes'])}`);
+
+  const values = {
+    pnm: p.name,
+    pdob: p.dob,
+    psx: p.sex === 'Not specified' ? '' : p.sex,
+    pbg: p.bg === 'Not specified' ? 'Unknown' : p.bg,
+    pph: p.phone,
+    pem: p.email,
+    pad: p.address,
+    pen: p.emerg === 'Not provided' ? '' : p.emerg,
+    pep: p.ephone,
+    pal: p.allergies.join(', '),
+    pco: p.cond.join(', '),
+    pme: p.meds.join('\n'),
+    pdc: p.doc === 'Not specified' ? '' : p.doc
+  };
+
+  Object.entries(values).forEach(([id, value]) => {
+    const field = $('#' + id);
+    if (field) field.value = value || '';
+  });
 }
 
 function addNote(p) {
@@ -1041,6 +1088,7 @@ document.addEventListener('click', e => {
     new: newPatient,
     addnote: () => addNote(p),
     upload,
+    editpatient: () => { if (p) editPatient(p); },
 
     tab: () => {
       if (!p) return;
@@ -1120,8 +1168,13 @@ document.addEventListener('click', e => {
           blood_group: $('#bg').value === 'Unknown' ? null : $('#bg').value,
           phone: $('#ph').value.trim() || null,
           email: $('#em').value.trim() || null,
+          address: $('#ad').value.trim() || null,
+          emergency_contact_name: $('#en').value.trim() || null,
+          emergency_contact_phone: $('#ep').value.trim() || null,
+          primary_physician: $('#dc').value.trim() || null,
           allergies: list($('#al').value),
           medical_conditions: list($('#co').value),
+          medications: $('#me').value.split(/\r?\n/).map(x => x.trim()).filter(Boolean),
           notes: null
         };
 
@@ -1141,6 +1194,57 @@ document.addEventListener('click', e => {
         toast('Unable to create patient');
         createButton.disabled = false;
         createButton.textContent = 'Create patient';
+      }
+    },
+
+    updatepatient: async () => {
+      const name = $('#pnm').value.trim();
+
+      if (name.length < 2) {
+        $('#pnme').textContent = 'Enter a valid full name (at least 2 characters).';
+        $('#pnm').focus();
+        return;
+      }
+
+      const saveButton = b;
+      saveButton.disabled = true;
+      saveButton.textContent = 'Saving...';
+
+      try {
+        const patientData = {
+          full_name: name,
+          date_of_birth: $('#pdob').value || null,
+          gender: $('#psx').value || null,
+          blood_group: $('#pbg').value === 'Unknown' ? null : $('#pbg').value,
+          phone: $('#pph').value.trim() || null,
+          email: $('#pem').value.trim() || null,
+          address: $('#pad').value.trim() || null,
+          emergency_contact_name: $('#pen').value.trim() || null,
+          emergency_contact_phone: $('#pep').value.trim() || null,
+          primary_physician: $('#pdc').value.trim() || null,
+          allergies: list($('#pal').value),
+          medical_conditions: list($('#pco').value),
+          medications: $('#pme').value.split(/\r?\n/).map(x => x.trim()).filter(Boolean)
+        };
+
+        await apiRequest(`/api/patients/${encodeURIComponent(p.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(patientData)
+        });
+
+        const updatedPatient = await loadPatientDetails(p.id);
+        updatedPatient.tab = 'profile';
+
+        close();
+        detail(updatedPatient);
+        toast('Patient details updated successfully');
+      } catch (error) {
+        console.error('Patient update failed:', error);
+        const errorElement = $('#pnme');
+        if (errorElement) errorElement.textContent = error.message;
+        toast('Unable to update patient details');
+        saveButton.disabled = false;
+        saveButton.textContent = 'Save changes';
       }
     },
 

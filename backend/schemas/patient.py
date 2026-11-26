@@ -1,7 +1,8 @@
 
 from datetime import date
-from pydantic import BaseModel, Field
 from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
 class PatientCreate(BaseModel):
@@ -12,8 +13,15 @@ class PatientCreate(BaseModel):
     email: Optional[str] = None
     blood_group: Optional[str] = None
 
+    address: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    primary_physician: Optional[str] = None
+
     allergies: list[str] = Field(default_factory=list)
     medical_conditions: list[str] = Field(default_factory=list)
+    medications: list[str] = Field(default_factory=list)
+
     notes: Optional[str] = None
 
 
@@ -27,6 +35,13 @@ class PatientUpdate(BaseModel):
     email: Optional[str] = None
     blood_group: Optional[str] = None
 
+    address: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    primary_physician: Optional[str] = None
+
     allergies: Optional[list[str]] = None
     medical_conditions: Optional[list[str]] = None
+    medications: Optional[list[str]] = None
+
     notes: Optional[str] = None
